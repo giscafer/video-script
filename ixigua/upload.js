@@ -1,20 +1,16 @@
-import { bilibiliCookies, showBrowser, downloadPath } from "./config.js"
+import { showBrowser, downloadPath } from "../config.js"
+import { cookieMap } from "./config.js"
 import { firefox as browserCore } from "playwright"
-import { existsSync, readFileSync, writeFileSync } from "fs"
-import { parseCookieObject } from "./utils.js"
-/**
- * 使用例 node upload.sh MetaFile [VideoFile]
- * MetaFile 是必须的
- * 如果视频文件命名和Meta文件一致则可不写
- */
-if (bilibiliCookies["FROM_ENV"]) console.log("从环境变量读取Cookie")
+import { existsSync, readFileSync } from "fs"
+import { parseCookieObject } from "../utils.js"
+
+console.log("process.argv.length=", process.argv)
 var [metaPath, videoPath] = getMetaPathFromArgs()
 const meta = JSON.parse(readFileSync(metaPath))
-console.log("222")
 
 function getMetaPathFromArgs() {
-  if (process.argv.length < 4) {
-    console.error("2缺少参数，请传入视频源信息文件")
+  if (process.argv.length < 3) {
+    console.error("ixigua 缺少参数，请传入视频源信息文件")
     process.exit(-1)
   }
 
@@ -51,11 +47,14 @@ async function main() {
       ],
     },
   })
-  context.addCookies(parseCookieObject(bilibiliCookies))
+  context.addCookies(parseCookieObject(cookieMap, ".ixigua.com"))
   const page = await context.newPage()
   try {
     await Promise.all([
-      page.goto(homePage, { waitUntil: "networkidle", timeout: 20 * 1000 }),
+      page.goto(homePage, {
+        waitUntil: "domcontentloaded",
+        timeout: 60 * 1000,
+      }),
       page.waitForResponse(/\/OK/), //Fix：库未加载完的无效点击
     ])
   } catch (error) {
@@ -82,48 +81,45 @@ async function main() {
     videoPath = `${downloadPath}${meta["id"]}.${ext}`
   }
   await fileChooser.setFiles(videoPath)
+  // 等待视频上传完成
+  await page.waitForSelector("svg.success", { timeout: 120 * 1000 })
+
+  // await page.fill('input[placeholder^="5-30个字符"]', meta["title"])
+  await page.click('div[data-editor="title"]')
+  await page.keyboard.type(meta["title"])
+
+  await page.click('text="上传封面"')
+  await page.waitForSelector("div.byte-slider.show-img-preview")
+  await page.click('text="下一步"')
+  await page.waitForSelector('text="确定"', { timeout: 10 * 1000 })
+  await page.click('text="确定"')
+  await page.waitForSelector('text="完成后无法继续编辑，是否确定完成？"')
+  await page.click("div.footer>button.red")
 
   await page.click('text="转载"')
-  await page.fill("input[placeholder^=转载视频请注明来源]", meta["webpage_url"])
-  await page.fill("input[placeholder*=标题]", meta["title"])
-
-  // 选择分区
-  await page.click("div.select-box-v2-container")
-  await page.click(`text="${videoInfo.category}"`)
-  await page.click(
-    `div.drop-cascader-list-wrp > div:nth-child(${videoInfo.category_level})`
-  ) // 修复问题:找不到二级选项导致堵塞，数字对应二级列表位置
-  //await page.click('text="科学科普"')
+  await page.fill("input[placeholder^=转载内容应]", meta["webpage_url"])
 
   // 创建标签
-  await page.click("input[placeholder*=创建标签]")
-  await page.keyboard.type(meta["uploader"])
-  await page.keyboard.down("Enter")
+  await page.click('input[placeholder="输入合适的话题"]')
+  // await page.keyboard.type(meta["uploader"])
+  // await page.keyboard.down("Enter")
   await page.keyboard.type(videoInfo.tag)
   await page.keyboard.down("Enter")
 
+  //更多选项
+  await page.click('text="(简介、互动贴纸、合集、章节、字幕等)"')
   // 视频描述
-  await page.click("div.ql-editor[data-placeholder^=填写更全]")
+  await page.click("#placeholder-abstract")
   await page.keyboard.type(
     `${videoInfo.description}\n${meta["description"]}`.slice(0, 250)
   )
 
-  //更多选项
-  await page.click('text="更多选项"')
-  await page.click('text="允许观众投稿字幕"')
-
-  await page.click('text="立即投稿"')
-  let result = await page.textContent("h3.upload-3-v2-success-hint-1", {
+  await page.click('text="发布"')
+  let result = await page.textContent("div.content-card__status-item ", {
     timeout: 60_000,
   })
   console.log(result)
-  let videoUrl = await page.getAttribute(
-    "div.content-tag-v2-edit-mod-wrp > p > a",
-    "href",
-    { timeout: 300_000 }
-  )
   await page.waitForLoadState("networkidle")
-  console.log(videoUrl)
 
   await page.close()
   await context.close()

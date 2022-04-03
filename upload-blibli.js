@@ -10,18 +10,17 @@ import { parseCookieObject } from "./utils.js"
 if (bilibiliCookies["FROM_ENV"]) console.log("从环境变量读取Cookie")
 var [metaPath, videoPath] = getMetaPathFromArgs()
 const meta = JSON.parse(readFileSync(metaPath))
-console.log("222")
 
 function getMetaPathFromArgs() {
   if (process.argv.length < 4) {
-    console.error("2缺少参数，请传入视频源信息文件")
+    console.error("1缺少参数，请传入视频源信息文件")
     process.exit(-1)
   }
 
   return process.argv.slice(2, 4)
 }
 
-const homePage = "https://studio.ixigua.com/upload?from=post_article"
+const homePage = "https://member.bilibili.com/video/upload.html"
 
 const videoInfo = {
   category: "生活",
@@ -40,7 +39,7 @@ async function main() {
     storageState: {
       origins: [
         {
-          origin: "https://studio.ixigua.com",
+          origin: "https://member.bilibili.com",
           localStorage: [
             {
               name: "SHOW_GUIDE",
@@ -66,7 +65,7 @@ async function main() {
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent("filechooser"),
-    page.click(".byte-upload-trigger-area"),
+    page.click("#bili-upload-btn"),
   ])
 
   if (!videoPath) {

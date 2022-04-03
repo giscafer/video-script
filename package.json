@@ -4,9 +4,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git@github.com:ame-yu/u2bili.git"
+    "url": "git@github.com:giscafer/video-script.git"
   },
-  "homepage": "https://github.com/ame-yu/u2bili",
+  "homepage": "https://github.com/giscafer/video-script",
   "type": "module",
   "dependencies": {
     "playwright": "^1.15.0"
