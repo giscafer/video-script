@@ -1,9 +1,5 @@
 # youtube->B 站&头条 搬运脚本
 
-![STARS](https://img.shields.io/github/stars/giscafer/video-script?color=%231cd&style=for-the-badge)
-![LICENSE](https://img.shields.io/github/license/giscafer/video-script?style=for-the-badge)
-![LAST_COMMIT](https://img.shields.io/github/last-commit/giscafer/video-script?style=for-the-badge)
-
 ## Features
 
 - 支持 B 站，代码 Fork 自 [u2bili](https://github.com/ame-yu/u2bili)
