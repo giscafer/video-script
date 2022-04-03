@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-downloadPath="../downloads/"
+downloadPath="./downloads/"
 
 if [[ $# -eq 0 ]]; then
     read -p "Youtube video URL: " yturl
@@ -27,4 +27,4 @@ if [ $filesize -ge 314572800 ]; then
 fi
 
 set -x #Show command
-youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./upload.js ${downloadPath}$vid.json"
+youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"

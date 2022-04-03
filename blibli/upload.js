@@ -1,7 +1,8 @@
-import { bilibiliCookies, showBrowser, downloadPath } from "./config.js"
+import { showBrowser, downloadPath, userAgent } from "../global-config.js"
+import { bilibiliCookies } from "./config.js"
 import { firefox as browserCore } from "playwright"
-import { existsSync, readFileSync, writeFileSync } from "fs"
-import { parseCookieObject } from "./utils.js"
+import { existsSync, readFileSync } from "fs"
+import { parseCookieObject } from "../utils.js"
 /**
  * 使用例 node upload.sh MetaFile [VideoFile]
  * MetaFile 是必须的
@@ -34,8 +35,7 @@ async function main() {
     headless: !showBrowser,
   })
   const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36 Edg/88.0.705.74",
+    userAgent,
     storageState: {
       origins: [
         {

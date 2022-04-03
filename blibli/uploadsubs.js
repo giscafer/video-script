@@ -1,6 +1,7 @@
 import fs from "fs"
 import https from "https"
-import { bilibiliCookies, downloadPath, showBrowser } from "./config.js"
+import { downloadPath, showBrowser } from "../global-config.js"
+import { bilibiliCookies } from "./config.js"
 import { parseCookieObject } from "./utils.js"
 import { firefox as browserCore } from "playwright"
 import { exec } from "child_process"
@@ -19,37 +20,39 @@ const langSelectorMap = {
   en: {
     name: "English",
     langCode: "en",
-    langSelector: "div.el-select-dropdown.el-popper > div > ul > li:nth-child(6)",
+    langSelector:
+      "div.el-select-dropdown.el-popper > div > ul > li:nth-child(6)",
   },
   ja: {
     name: "日本語",
     langCode: "ja",
-    langSelector: "div.el-select-dropdown.el-popper > div > ul > li:nth-child(7)",
+    langSelector:
+      "div.el-select-dropdown.el-popper > div > ul > li:nth-child(7)",
   },
   zh: {
     name: "简体中文",
     langCode: "zh-Hans",
-    langSelector: "div.el-select-dropdown.el-popper > div > ul > li:nth-child(1)",
-  }
+    langSelector:
+      "div.el-select-dropdown.el-popper > div > ul > li:nth-child(1)",
+  },
 }
 
-async function downloadSubtitle(youtubeUrl, bvid){
+async function downloadSubtitle(youtubeUrl, bvid) {
   return new Promise((resolve, reject) => {
     const command = `youtube-dl "${youtubeUrl}" --all-subs -o ${downloadPath}${bvid} --skip-download`
-    console.log(command);
-    exec(command,
-    (error, stdout, stderr) => {
+    console.log(command)
+    exec(command, (error, stdout, stderr) => {
       if (error) {
-          console.log(`error: ${error.message}`);
-          return reject(error);
+        console.log(`error: ${error.message}`)
+        return reject(error)
       }
       if (stderr) {
-          console.log(`stderr: ${stderr}`);
-          return reject(error);
+        console.log(`stderr: ${stderr}`)
+        return reject(error)
       }
-      console.log(`stdout: ${stdout}`);
+      console.log(`stdout: ${stdout}`)
       resolve()
-  })
+    })
   })
 }
 
@@ -95,16 +98,19 @@ async function main(batchSize, userId) {
   if (vlist.length === 0) {
     console.log("No youtube video detected.")
   }
-  console.log(`Scanning ${vlist.length} video`);
+  console.log(`Scanning ${vlist.length} video`)
 
   for await (let video of vlist) {
     const youtubeUrl = video.description.split("\n")[0]
     await downloadSubtitle(youtubeUrl, video.bvid)
   }
   //Rename vtt to srt
-  fs.readdirSync(downloadPath).forEach(it => {
-    if(it.indexOf(".vtt") === -1) return
-    fs.renameSync(`${downloadPath}${it}`, `${downloadPath}${it.replace("vtt","srt")}`)
+  fs.readdirSync(downloadPath).forEach((it) => {
+    if (it.indexOf(".vtt") === -1) return
+    fs.renameSync(
+      `${downloadPath}${it}`,
+      `${downloadPath}${it.replace("vtt", "srt")}`
+    )
   })
 
   const browser = await browserCore.launch({
@@ -120,24 +126,27 @@ async function main(batchSize, userId) {
   const page = await context.newPage()
   await blockImageAndTracker(page)
 
-  
   //上传字幕阶段
   for await (let video of vlist) {
-    const subtitleMatchedFile = fs.readdirSync(downloadPath).filter(it => it.indexOf(video.bvid) !== -1)
+    const subtitleMatchedFile = fs
+      .readdirSync(downloadPath)
+      .filter((it) => it.indexOf(video.bvid) !== -1)
     if (subtitleMatchedFile.length === 0) {
-      console.log(`[${video.bvid}] No subtitle for ${video.title}`);
+      console.log(`[${video.bvid}] No subtitle for ${video.title}`)
       continue
     }
     await page.goto(`https://www.bilibili.com/video/${video.bvid}`)
     const [bvid, cid] = await page.evaluate(() => [window.bvid, window.cid])
-    for (const lang in langSelectorMap){
-      const {name: langName,langCode, langSelector} = langSelectorMap[lang]
+    for (const lang in langSelectorMap) {
+      const { name: langName, langCode, langSelector } = langSelectorMap[lang]
       const subtitlePath = `${downloadPath}${video.bvid}.${langCode}.srt`
       if (!fs.existsSync(subtitlePath)) {
-        console.log(`[${bvid}] ${langName}subtitle file not found（${subtitlePath}）>>> SKIP`)
+        console.log(
+          `[${bvid}] ${langName}subtitle file not found（${subtitlePath}）>>> SKIP`
+        )
         continue
       }
-      
+
       await page.goto(
         `https://account.bilibili.com/subtitle/edit/#/editor?bvid=${bvid}&cid=${cid}`,
         {
@@ -154,8 +163,8 @@ async function main(batchSize, userId) {
 
       const langElement = await page.$(langSelector)
       const langElementText = await langElement.textContent()
-      if(langElementText.includes("已发布")){
-        console.log(`[${bvid}] ${langName} subtitle already exist >>> SKIP`);
+      if (langElementText.includes("已发布")) {
+        console.log(`[${bvid}] ${langName} subtitle already exist >>> SKIP`)
         continue
       }
 

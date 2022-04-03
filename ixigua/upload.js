@@ -1,4 +1,4 @@
-import { showBrowser, downloadPath } from "../config.js"
+import { showBrowser, downloadPath, userAgent } from "../global-config.js"
 import { cookieMap } from "./config.js"
 import { firefox as browserCore } from "playwright"
 import { existsSync, readFileSync } from "fs"
@@ -13,7 +13,6 @@ function getMetaPathFromArgs() {
     console.error("ixigua 缺少参数，请传入视频源信息文件")
     process.exit(-1)
   }
-
   return process.argv.slice(2, 4)
 }
 
@@ -31,8 +30,7 @@ async function main() {
     headless: !showBrowser,
   })
   const context = await browser.newContext({
-    userAgent:
-      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36 Edg/88.0.705.74",
+    userAgent,
     storageState: {
       origins: [
         {
@@ -84,7 +82,6 @@ async function main() {
   // 等待视频上传完成
   await page.waitForSelector("svg.success", { timeout: 120 * 1000 })
 
-  // await page.fill('input[placeholder^="5-30个字符"]', meta["title"])
   await page.click('div[data-editor="title"]')
   await page.keyboard.type(meta["title"])
 
@@ -101,19 +98,21 @@ async function main() {
 
   // 创建标签
   await page.click('input[placeholder="输入合适的话题"]')
-  // await page.keyboard.type(meta["uploader"])
-  // await page.keyboard.down("Enter")
-  await page.keyboard.type(videoInfo.tag)
+  await page.keyboard.type(meta["uploader"])
   await page.keyboard.down("Enter")
+  // await page.keyboard.type(videoInfo.tag)
+  // await page.keyboard.down("Enter")
 
-  //更多选项
-  await page.click('text="(简介、互动贴纸、合集、章节、字幕等)"')
-  // 视频描述
-  await page.click("#placeholder-abstract")
-  await page.keyboard.type(
-    `${videoInfo.description}\n${meta["description"]}`.slice(0, 250)
-  )
-
+  //更多选项(这里会抖动，暂时不知道原因)
+  // await page.click('text="(简介、互动贴纸、合集、章节、字幕等)"')
+  // // 视频描述
+  // await page.click("#placeholder-abstract")
+  // await page.keyboard.type(
+  //   `${videoInfo.description}\n${meta["description"]}`.slice(0, 250)
+  // )
+  await page.waitForSelector("div.m-xigua-upload>div.bg", {
+    timeout: 20 * 1000,
+  })
   await page.click('text="发布"')
   let result = await page.textContent("div.content-card__status-item ", {
     timeout: 60_000,
