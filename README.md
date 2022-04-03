@@ -11,7 +11,7 @@
 - [ ] ixigua 支持英文视频翻译
 - [ ] 监控视频更新，自动发布
 - [ ] ixigua 支持 Tag 分类
-- [ ] blibli 注册账号
+- [ ] bilibili 注册账号（原主号将来做 it 课程）
 - [ ] 视频号研究
 
 ## Demo Preview
