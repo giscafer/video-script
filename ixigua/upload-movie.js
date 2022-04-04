@@ -1,56 +1,40 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
-import { existsSync, readFileSync } from 'fs';
-import { join, dirname } from 'path';
-import { fileURLToPath } from 'url';
+import { existsSync } from 'fs';
+import { dirname, join } from 'path';
 import { firefox as browserCore } from 'playwright';
-import { downloadPath, showBrowser, userAgent } from '../global-config.js';
-import translate from '../shared/translate.js';
+import { fileURLToPath } from 'url';
+import { moviePath, showBrowser, userAgent } from '../global-config.js';
 import { parseCookieObject, replaceYoutubeUrl } from '../shared/utils.js';
 import { cookieMap } from './config.js';
 
-const videoInfo = {
-  category: '生活',
+const meta = {
+  id: 2,
+  title: '尼罗河上的惨案 Death on the Nile',
+  category: '欧美电影',
+  tag: '剧情',
+  webpage_url: 'https://movie.douban.com/subject/27203644/',
+  description:
+    '故事继续聚焦在上流社会的秘事，大侦探波洛（肯尼思·布拉纳 Kenneth Branagh 饰）在埃及度假期间， 卷入到了一场危险的三角关系之中，他在察觉到这趟旅程中不寻常的味道之后，登上了那条驶往阴谋和死亡的船。',
   language: '英文',
-  category_level: 5,
-  tag: '生活记录',
-  description: 'How to make GYO | Quick Feeds',
 };
 
 console.log('process.argv=', process.argv);
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
-console.log('downloadPath=', join(__dirname, downloadPath));
+console.log('moviePath=', join(__dirname, moviePath));
 
 function getMetaPathFromArgs() {
-  if (process.argv.length < 3) {
-    console.error('ixigua 缺少参数，请传入视频源信息文件');
-    process.exit(-1);
-  }
   return process.argv.slice(2, 4);
 }
 
 // eslint-disable-next-line prefer-const
-let [metaPath, videoPath] = getMetaPathFromArgs();
-const meta = JSON.parse(readFileSync(metaPath));
+let [videoPath] = getMetaPathFromArgs();
 
 const homePage = 'https://studio.ixigua.com/upload?from=post_article';
 
 async function main() {
-  videoInfo.title = meta.title;
-
-  try {
-    if (videoInfo.language === '英文') {
-      const zhTitle = await translate(meta.title);
-      console.log('videoInfo.title=', videoInfo.title);
-      videoInfo.title = zhTitle;
-    }
-  } catch (error) {
-    // console.error(error);
-    console.error('翻译失败');
-  }
-
   const browser = await browserCore.launch({
     headless: !showBrowser,
   });
@@ -92,24 +76,26 @@ async function main() {
   ]);
 
   if (!videoPath) {
-    const ext = ['webm', 'mp4', 'mkv'].find((ext1) =>
-      existsSync(`${downloadPath}${meta.id}.${ext1}`)
-    );
+    const ext = ['webm', 'mp4', 'mkv'].find((realExt) => {
+      console.log(join(__dirname, `${moviePath}${meta.id}.${realExt}`));
+
+      return existsSync(join(__dirname, `${moviePath}${meta.id}.${realExt}`));
+    });
     if (!ext) {
       console.error(
-        `无法在${downloadPath}找到${meta.id}命名的视频文件，上传未成功。`
+        `无法在${moviePath}找到${meta.id}命名的视频文件，上传未成功。`
       );
       process.exit(-1);
     }
-    videoPath = `${downloadPath}${meta.id}.${ext}`;
+    videoPath = join(__dirname, `${moviePath}${meta.id}.${ext}`);
   }
   await fileChooser.setFiles(videoPath);
   // 等待视频上传完成
-  await page.waitForSelector('svg.success', { timeout: 360 * 1000 });
+  await page.waitForSelector('svg.success', { timeout: 1080 * 1000 });
 
   // 输入视频标题
   await page.click('div[data-editor="title"]');
-  await page.keyboard.type(videoInfo.title);
+  await page.keyboard.type(meta.title);
 
   // 封面获取
   await page.click('text="上传封面"');
@@ -136,46 +122,28 @@ async function main() {
   await page.waitForSelector('div.m-xigua-upload>div.bg', {
     timeout: 20 * 1000,
   });
+
   // 转载链接
   await page.click('text="转载"');
   await page.fill('input[placeholder^=转载内容应]', meta.webpage_url);
 
   // 创建话题
   await page.focus('input.arco-input-tag-input');
-  await page.keyboard.type(meta.uploader);
-  await page.keyboard.down('Enter');
-  // await page.keyboard.type(videoInfo.tag)
-  // await page.keyboard.down("Enter")
+  await page.keyboard.type(meta.category);
+  // await page.keyboard.down('Enter'); // 不起作用
+  await page.click('text="视频信息"');
+  await page.focus('input.arco-input-tag-input');
+  await page.keyboard.type(meta.tag);
+  await page.click('text="视频信息"');
 
   // -----更多选项(这里会抖动，暂时不知道原因)--------
   // 视频描述(头条描述不能输入网址，需要过滤掉)
   await page.click('div.video-form-fold>div.fold-title');
   await page.click('div[data-editor="abstract"]');
   await page.keyboard.type(
-    `${replaceYoutubeUrl(videoInfo.description)}\n${replaceYoutubeUrl(
+    `${replaceYoutubeUrl(meta.title)}\n${replaceYoutubeUrl(
       meta.description
     )}`.slice(0, 250)
-  );
-  // 添加字幕
-  await page.click('text="添加字幕"');
-  await page.waitForSelector('div.add-caption-modal-button');
-  await page.click('text="立即生成"');
-  await page.waitForSelector('div.choose-language-modal-select');
-  await page.click('div.byte-select-view-placeholder');
-  await page.click(`text="${videoInfo.language}"`);
-  await page.click(
-    'div.choose-language-modal-footer>div.choose-language-modal-okButton'
-  );
-  // 等待字幕文件生成
-  await page.waitForSelector(
-    'div.add-caption-modal-generateCaption-modifyEntry',
-    {
-      timeout: 360 * 1000,
-    }
-  );
-
-  await page.click(
-    'div.add-caption-modal-buttonContainer>div.add-caption-modal-okButton.red'
   );
 
   await page.click('text="发布"');
