@@ -5,4 +5,6 @@ export const cookieMap = {
   sessionid: '79b039810e5516e31c4e7c7752805e58',
 };
 
-export default {};
+const uploadPageUrl = 'https://studio.ixigua.com/upload?from=post_article';
+
+export default uploadPageUrl;

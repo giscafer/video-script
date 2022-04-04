@@ -6,40 +6,22 @@ import { firefox as browserCore } from 'playwright';
 import { fileURLToPath } from 'url';
 import { moviePath, showBrowser, userAgent } from '../global-config.js';
 import { parseCookieObject, replaceYoutubeUrl } from '../shared/utils.js';
-import { cookieMap } from './config.js';
-
-const title = '尼罗河上的惨案';
-const meta = {
-  id: 2,
-  title,
-  category: '欧美电影',
-  tag: '剧情',
-  webpage_url: 'https://movie.douban.com/subject/27203644/',
-  description:
-    '故事继续聚焦在上流社会的秘事，大侦探波洛（肯尼思·布拉纳 Kenneth Branagh 饰）在埃及度假期间， 卷入到了一场危险的三角关系之中，他在察觉到这趟旅程中不寻常的味道之后，登上了那条驶往阴谋和死亡的船。',
-  language: '英文',
-};
-
-console.log('process.argv=', process.argv);
+import uploadPageUrl, { cookieMap } from './config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
+
 console.log('moviePath=', join(__dirname, moviePath));
 
 function getMetaPathFromArgs() {
   return process.argv.slice(2, 4);
 }
 
-// eslint-disable-next-line prefer-const
-let [videoPath] = getMetaPathFromArgs();
-
-const homePage = 'https://studio.ixigua.com/upload?from=post_article';
-
 let browser = null;
 let context = null;
 let page = null;
 
-async function upload(pageInstance, closeFlag = false) {
+async function upload(meta, pageInstance, closeFlag = false) {
   page = pageInstance;
   // 便于循环重复利用页面
   if (!page) {
@@ -67,15 +49,11 @@ async function upload(pageInstance, closeFlag = false) {
   }
 
   try {
-    await Promise.all([
-      page.goto(homePage, {
-        waitUntil: 'domcontentloaded',
-        timeout: 20 * 1000,
-      }),
-      page.waitForResponse(/\/OK/), // fix：库未加载完的无效点击
-    ]);
+    await page.goto(uploadPageUrl, {
+      waitUntil: 'domcontentloaded',
+      timeout: 20 * 1000,
+    });
   } catch (error) {
-    // 不知道为啥会超时，但不影响上传
     if (error.name === 'TimeoutError') {
       console.log('网络问题导致页面加载超时...');
     }
@@ -85,19 +63,22 @@ async function upload(pageInstance, closeFlag = false) {
     page.waitForEvent('filechooser'),
     page.click('div.byte-upload-trigger'),
   ]);
-
+  const tempMeta = meta;
+  let [videoPath] = getMetaPathFromArgs();
   if (!videoPath) {
     const ext = ['mp4', 'mkv'].find((realExt) =>
-      existsSync(join(__dirname, `${moviePath}${meta.id}.${realExt}`))
+      existsSync(join(__dirname, `${moviePath}${tempMeta.id}.${realExt}`))
     );
     if (!ext) {
       console.error(
-        `无法在${moviePath}找到${meta.id}命名的视频文件，上传未成功。`
+        `无法在${moviePath}找到${tempMeta.id}命名的视频文件，上传未成功。`
       );
       process.exit(-1);
     }
+    console.log('选择的视频文件：', `${moviePath}${tempMeta.id}.${ext}`);
+
     // videoPath = `./ffmpegOutput/${meta.id}.${ext}`;
-    videoPath = join(__dirname, `${moviePath}${meta.id}.${ext}`).toString();
+    videoPath = join(__dirname, `${moviePath}${tempMeta.id}.${ext}`).toString();
   }
   await fileChooser.setFiles(videoPath);
   console.log('选择文件成功！');
@@ -173,22 +154,35 @@ async function upload(pageInstance, closeFlag = false) {
   return page;
 }
 
+const title = '蜘蛛侠：英雄无归';
+const videoInfo = {
+  id: 1,
+  title,
+  category: '欧美电影',
+  tag: '动作',
+  webpage_url: 'https://movie.douban.com/subject/26933210/',
+  description:
+    '《蜘蛛侠：英雄无归》是英雄系列三部曲的完结篇，也标志着漫威多元宇宙的正式开启。此次，蜘蛛侠（汤姆·赫兰德 饰）与奇异博士（本尼迪克特·康伯巴奇 饰）继《复联4》后再度联手打响时空混战。蜘蛛侠借助奇异博士操控时空的能力打开了时空通道，引发了前所未见的危机。',
+  language: '英文',
+};
+
 async function main() {
-  for (let index = 6; index < 13; index += 1) {
-    console.log('index=', index);
-    meta.id = index;
-    meta.title = `${title}(${index})`;
+  for (let index = 1; index < 4; index += 1) {
+    videoInfo.id = index;
+    videoInfo.title = `${title}(${index})`;
+    console.log(videoInfo.title);
     // eslint-disable-next-line no-await-in-loop
-    await upload(page, index === 12);
+    await upload(videoInfo, page, index === 3);
     console.log('上传完成', index);
   }
 }
 
 main();
+
 /*
 const index = 2;
 // for (let index = 3; index < 14; index += 1) {
-meta.id = index;
-meta.title = `${meta.title}(${index})`;
+videoInfo.id = index;
+videoInfo.title = `${videoInfo.title}(${index})`;
 // eslint-disable-next-line no-await-in-loop
-upload().then(() => console.log('上传完成', index)); */
+upload(videoInfo).then(() => console.log('上传完成', index)); */
