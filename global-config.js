@@ -10,7 +10,7 @@ export const showBrowser = process.platform === 'darwin';
  */
 export const downloadPath = '../downloads/';
 
-export const moviePath = '../ffmpegOutput1/';
+export const moviePath = '../ffmpegOutput/';
 
 export const userAgent =
   '"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.182 Safari/537.36 Edg/88.0.705.74"';

@@ -8,9 +8,10 @@ import { moviePath, showBrowser, userAgent } from '../global-config.js';
 import { parseCookieObject, replaceYoutubeUrl } from '../shared/utils.js';
 import { cookieMap } from './config.js';
 
+const title = '尼罗河上的惨案';
 const meta = {
   id: 2,
-  title: '尼罗河上的惨案 Death on the Nile',
+  title,
   category: '欧美电影',
   tag: '剧情',
   webpage_url: 'https://movie.douban.com/subject/27203644/',
@@ -34,37 +35,47 @@ let [videoPath] = getMetaPathFromArgs();
 
 const homePage = 'https://studio.ixigua.com/upload?from=post_article';
 
-async function main() {
-  const browser = await browserCore.launch({
-    headless: !showBrowser,
-  });
-  const context = await browser.newContext({
-    userAgent,
-    storageState: {
-      origins: [
-        {
-          origin: 'https://studio.ixigua.com',
-          localStorage: [
-            {
-              name: 'SHOW_GUIDE',
-              value: '1',
-            },
-          ],
-        },
-      ],
-    },
-  });
-  context.addCookies(parseCookieObject(cookieMap, '.ixigua.com'));
-  const page = await context.newPage();
+let browser = null;
+let context = null;
+let page = null;
+
+async function upload(pageInstance, closeFlag = false) {
+  page = pageInstance;
+  // 便于循环重复利用页面
+  if (!page) {
+    browser = await browserCore.launch({
+      headless: !showBrowser,
+    });
+    context = await browser.newContext({
+      userAgent,
+      storageState: {
+        origins: [
+          {
+            origin: 'https://studio.ixigua.com',
+            localStorage: [
+              {
+                name: 'SHOW_GUIDE',
+                value: 'ixigua',
+              },
+            ],
+          },
+        ],
+      },
+    });
+    context.addCookies(parseCookieObject(cookieMap, '.ixigua.com'));
+    page = await context.newPage();
+  }
+
   try {
     await Promise.all([
       page.goto(homePage, {
         waitUntil: 'domcontentloaded',
-        timeout: 60 * 1000,
+        timeout: 20 * 1000,
       }),
       page.waitForResponse(/\/OK/), // fix：库未加载完的无效点击
     ]);
   } catch (error) {
+    // 不知道为啥会超时，但不影响上传
     if (error.name === 'TimeoutError') {
       console.log('网络问题导致页面加载超时...');
     }
@@ -72,29 +83,30 @@ async function main() {
 
   const [fileChooser] = await Promise.all([
     page.waitForEvent('filechooser'),
-    page.click('.byte-upload-trigger-area'),
+    page.click('div.byte-upload-trigger'),
   ]);
 
   if (!videoPath) {
-    const ext = ['webm', 'mp4', 'mkv'].find((realExt) => {
-      console.log(join(__dirname, `${moviePath}${meta.id}.${realExt}`));
-
-      return existsSync(join(__dirname, `${moviePath}${meta.id}.${realExt}`));
-    });
+    const ext = ['mp4', 'mkv'].find((realExt) =>
+      existsSync(join(__dirname, `${moviePath}${meta.id}.${realExt}`))
+    );
     if (!ext) {
       console.error(
         `无法在${moviePath}找到${meta.id}命名的视频文件，上传未成功。`
       );
       process.exit(-1);
     }
-    videoPath = join(__dirname, `${moviePath}${meta.id}.${ext}`);
+    // videoPath = `./ffmpegOutput/${meta.id}.${ext}`;
+    videoPath = join(__dirname, `${moviePath}${meta.id}.${ext}`).toString();
   }
   await fileChooser.setFiles(videoPath);
+  console.log('选择文件成功！');
+
   // 等待视频上传完成
   await page.waitForSelector('svg.success', { timeout: 1080 * 1000 });
 
   // 输入视频标题
-  await page.click('div[data-editor="title"]');
+  await page.click('div[data-editor="title"]', { timeout: 60 * 1000 });
   await page.keyboard.type(meta.title);
 
   // 封面获取
@@ -117,7 +129,7 @@ async function main() {
   await page.waitForSelector('.upper-canvas', { timeout: 10 * 1000 });
   await page.click('text="确定"');
   await page.waitForSelector('text="完成后无法继续编辑，是否确定完成？"');
-  await page.click('div.footer>button.red');
+  await page.click('div.footer>button.red', { timeout: 60 * 1000 });
   // 等待封面渲染完成
   await page.waitForSelector('div.m-xigua-upload>div.bg', {
     timeout: 20 * 1000,
@@ -130,11 +142,10 @@ async function main() {
   // 创建话题
   await page.focus('input.arco-input-tag-input');
   await page.keyboard.type(meta.category);
-  // await page.keyboard.down('Enter'); // 不起作用
-  await page.click('text="视频信息"');
+  await page.keyboard.down('Enter'); // 不起作用
   await page.focus('input.arco-input-tag-input');
   await page.keyboard.type(meta.tag);
-  await page.click('text="视频信息"');
+  await page.keyboard.down('Enter'); // 不起作用
 
   // -----更多选项(这里会抖动，暂时不知道原因)--------
   // 视频描述(头条描述不能输入网址，需要过滤掉)
@@ -151,11 +162,33 @@ async function main() {
     timeout: 60_000,
   });
   console.log(result);
-  await page.waitForLoadState('networkidle');
+  // await page.waitForLoadState('networkidle');
 
-  await page.close();
-  await context.close();
-  await browser.close();
+  if (closeFlag) {
+    await page.close();
+    await context.close();
+    await browser.close();
+    page = null;
+  }
+  return page;
+}
+
+async function main() {
+  for (let index = 6; index < 13; index += 1) {
+    console.log('index=', index);
+    meta.id = index;
+    meta.title = `${title}(${index})`;
+    // eslint-disable-next-line no-await-in-loop
+    await upload(page, index === 12);
+    console.log('上传完成', index);
+  }
 }
 
 main();
+/*
+const index = 2;
+// for (let index = 3; index < 14; index += 1) {
+meta.id = index;
+meta.title = `${meta.title}(${index})`;
+// eslint-disable-next-line no-await-in-loop
+upload().then(() => console.log('上传完成', index)); */

@@ -1,5 +1,7 @@
 # youtube->B 站&头条 搬运脚本
 
+视频>200M playwright 好像会卡住
+
 ## Features
 
 - 支持 B 站，代码 Fork 自 [u2bili](https://github.com/ame-yu/u2bili)
