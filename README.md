@@ -49,7 +49,7 @@ DedeUserID=XXX; DedeUserID__ckMd5=XXX; bili_jct=XXX; SESSDATA=XXX
 - youtube-dl 下载油管用
 - playwright 上传 B 站用
 
-## 🧂 调味指南 Tinker & Deployment
+## Deployment
 
 <details>
     <summary>📺关于下载的清晰度</summary>

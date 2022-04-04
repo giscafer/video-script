@@ -86,9 +86,22 @@ async function main() {
   await page.keyboard.type(meta["title"])
 
   await page.click('text="上传封面"')
-  await page.waitForSelector("div.byte-slider.show-img-preview")
+  try {
+    // mp4
+    await page.waitForSelector("div.byte-slider.show-img-preview", {
+      timeout: 10 * 1000,
+    })
+  } catch (err) {
+    // mkv
+    console.log("err", err)
+    console.log("执行mkv图片选择逻辑")
+    await page.waitForSelector("div.m-server-bg-list", { timeout: 10 * 1000 })
+    // 选第一张图片
+    await page.click("div.m-server-bg-list>div.m-system-i>img")
+  }
+
   await page.click('text="下一步"')
-  await page.waitForSelector('text="确定"', { timeout: 10 * 1000 })
+  await page.waitForSelector(".upper-canvas", { timeout: 10 * 1000 })
   await page.click('text="确定"')
   await page.waitForSelector('text="完成后无法继续编辑，是否确定完成？"')
   await page.click("div.footer>button.red")
