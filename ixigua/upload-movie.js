@@ -167,12 +167,12 @@ const videoInfo = {
 };
 
 async function main() {
-  for (let index = 1; index < 4; index += 1) {
+  for (let index = 10; index < 14; index += 1) {
     videoInfo.id = index;
     videoInfo.title = `${title}(${index})`;
     console.log(videoInfo.title);
     // eslint-disable-next-line no-await-in-loop
-    await upload(videoInfo, page, index === 3);
+    await upload(videoInfo, page, index === 13);
     console.log('上传完成', index);
   }
 }

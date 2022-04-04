@@ -29,9 +29,9 @@ fi
 # Show command
 set -x 
 echo "downloading..."
-# youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"
-youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s"
-echo "uploading..."
 pwd
-# node ./ixigua/upload.js ${downloadPath}$vid.json  ${downloadPath}$vid.mp4
 youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"
+# youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s"
+echo "finish"
+# node ./ixigua/upload.js ${downloadPath}$vid.json  ${downloadPath}$vid.mp4
+# youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"
