@@ -26,5 +26,10 @@ if [ $filesize -ge 314572800 ]; then
     FORMAT="-f 22"
 fi
 
-set -x #Show command
-youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"
+# Show command
+set -x 
+echo "下载视频中..."
+# youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"
+youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s"
+echo "上传视频中..."
+node ./ixigua/upload.js "${downloadPath}$vid.json"

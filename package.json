@@ -9,6 +9,14 @@
   "homepage": "https://github.com/giscafer/video-script",
   "type": "module",
   "dependencies": {
+    "axios": "^0.26.1",
+    "baidu-fanyi-api": "^0.0.3",
     "playwright": "^1.15.0"
+  },
+  "devDependencies": {
+    "eslint": "^8.12.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.25.4",
+    "jest": "^27.5.1"
   }
 }
