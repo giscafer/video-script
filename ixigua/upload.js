@@ -1,9 +1,12 @@
+/* eslint-disable no-underscore-dangle */
 /* eslint-disable no-console */
 import { existsSync, readFileSync } from 'fs';
+import { join, dirname } from 'path';
+import { fileURLToPath } from 'url';
 import { firefox as browserCore } from 'playwright';
 import { downloadPath, showBrowser, userAgent } from '../global-config.js';
 import translate from '../shared/translate.js';
-import { parseCookieObject } from '../utils.js';
+import { parseCookieObject, replaceYoutubeUrl } from '../shared/utils.js';
 import { cookieMap } from './config.js';
 
 const videoInfo = {
@@ -14,7 +17,11 @@ const videoInfo = {
   description: 'How to make GYO | Quick Feeds',
 };
 
-console.log('process.argv.length=', process.argv);
+console.log('process.argv=', process.argv);
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+console.log('downloadPath=', join(__dirname, downloadPath));
 
 function getMetaPathFromArgs() {
   if (process.argv.length < 3) {
@@ -33,10 +40,15 @@ const homePage = 'https://studio.ixigua.com/upload?from=post_article';
 async function main() {
   videoInfo.title = meta.title;
 
-  if (videoInfo.language === '英文') {
-    const zhTitle = await translate(meta.title);
-    console.log('videoInfo.title=', videoInfo.title);
-    videoInfo.title = zhTitle;
+  try {
+    if (videoInfo.language === '英文') {
+      const zhTitle = await translate(meta.title);
+      console.log('videoInfo.title=', videoInfo.title);
+      videoInfo.title = zhTitle;
+    }
+  } catch (error) {
+    // console.error(error);
+    console.error('翻译失败');
   }
 
   const browser = await browserCore.launch({
@@ -93,7 +105,7 @@ async function main() {
   }
   await fileChooser.setFiles(videoPath);
   // 等待视频上传完成
-  await page.waitForSelector('svg.success', { timeout: 120 * 1000 });
+  await page.waitForSelector('svg.success', { timeout: 360 * 1000 });
 
   // 输入视频标题
   await page.click('div[data-editor="title"]');
@@ -125,19 +137,21 @@ async function main() {
   await page.click('text="转载"');
   await page.fill('input[placeholder^=转载内容应]', meta.webpage_url);
 
-  // 创建标签
-  await page.click('input[placeholder="输入合适的话题"]');
+  // 创建话题
+  await page.focus('input.arco-input-tag-input');
   await page.keyboard.type(meta.uploader);
   await page.keyboard.down('Enter');
   // await page.keyboard.type(videoInfo.tag)
   // await page.keyboard.down("Enter")
 
   // -----更多选项(这里会抖动，暂时不知道原因)--------
-  // 视频描述
+  // 视频描述(头条描述不能输入网址，需要过滤掉)
   await page.click('div.video-form-fold>div.fold-title');
   await page.click('div[data-editor="abstract"]');
   await page.keyboard.type(
-    `${videoInfo.description}\n${meta.description}`.slice(0, 250)
+    `${replaceYoutubeUrl(videoInfo.description)}\n${replaceYoutubeUrl(
+      meta.description
+    )}`.slice(0, 250)
   );
   // 添加字幕
   await page.click('text="添加字幕"');
@@ -150,12 +164,15 @@ async function main() {
     'div.choose-language-modal-footer>div.choose-language-modal-okButton'
   );
   // 等待字幕文件生成
-  await page.waitForSelector('div.add-caption-modal-textContainer', {
-    timeout: 120 * 1000,
-  });
+  await page.waitForSelector(
+    'div.add-caption-modal-generateCaption-modifyEntry',
+    {
+      timeout: 360 * 1000,
+    }
+  );
 
   await page.click(
-    'div.add-caption-modal-buttonContainer>div.add-caption-modal-okButton'
+    'div.add-caption-modal-buttonContainer>div.add-caption-modal-okButton.red'
   );
 
   // 等待视频发布成功

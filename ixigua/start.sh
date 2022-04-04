@@ -28,8 +28,10 @@ fi
 
 # Show command
 set -x 
-echo "下载视频中..."
+echo "downloading..."
 # youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"
 youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s"
-echo "上传视频中..."
-node ./ixigua/upload.js "${downloadPath}$vid.json"
+echo "uploading..."
+pwd
+# node ./ixigua/upload.js ${downloadPath}$vid.json  ${downloadPath}$vid.mp4
+youtube-dl $yturl $FORMAT -q --all-subs --embed-subs -o "${downloadPath}%(id)s.%(ext)s" --exec "node ./ixigua/upload.js ${downloadPath}$vid.json"
