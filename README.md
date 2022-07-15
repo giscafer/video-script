@@ -4,7 +4,7 @@
 
 ## Features
 
-- 支持 B 站，代码 Fork 自 [u2bili](https://github.com/ame-yu/u2bili)
+- 支持 B 站，B站脚本代码代码 Fork 自 [u2bili](https://github.com/ame-yu/u2bili) 进行二次改造
 - 支持头条
 
 ## TODO
